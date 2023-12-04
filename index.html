@@ -22,9 +22,8 @@
                     return createVNode("div", { className: "container" }, [
                         createVNode("h1", null, ["Hello, World!"]),
                         createVNode("p", null, [
-                            "We're building a ",
-                            createVNode("small", null, ["(really simple)"]),
-                            " virtual DOM library.",
+                            createVNode(Counter),
+                            createVNode(Counter, { buttonText: "Add One" }),
                         ]),
                     ]);
                 }
@@ -38,5 +37,6 @@
             });
         </script>
         <script src="vdom.js"></script>
+        <script src="counter.js"></script>
     </body>
 </html>

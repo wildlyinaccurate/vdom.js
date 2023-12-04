@@ -14,8 +14,21 @@ function mount(vnode, parentDom) {
         // When the node is a string or number, we can insert a plain text node.
         domNode = document.createTextNode(vnode);
     } else {
-        // For vnode objects, we create a HTMLElement of the node's type.
-        domNode = document.createElement(vnode.type);
+        if (typeof vnode.type === "function") {
+            // If the vnode type is a function, we can assume it is a component.
+            const Component = vnode.type;
+
+            // We create an instance of the component with the props passed in.
+            const instance = new Component(vnode.props);
+
+            // Then we call the component's render() function which returns a VDOM tree.
+            // Just like we do with child components, this VDOM tree is passed recursively
+            // into the mount function.
+            domNode = mount(instance.render(), parentDom);
+        } else {
+            // For everything else, we assume vnode.type is a tag name and create a HTMLElement.
+            domNode = document.createElement(vnode.type);
+        }
 
         if (vnode.props) {
             // All of the props are set as attributes on the HTMLElement.
@@ -33,4 +46,20 @@ function mount(vnode, parentDom) {
 
     // When we're finished, append the new DOM node to the parent.
     parentDom.appendChild(domNode);
+
+    return domNode;
+}
+
+class Component {
+    state = {};
+
+    constructor(props) {
+        this.props = props || {};
+    }
+
+    setState(newState) {
+        console.log("Setting state of", this.constructor.name, "to", newState);
+    }
+
+    render() {}
 }
