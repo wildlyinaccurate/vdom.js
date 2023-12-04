@@ -3,6 +3,8 @@ function createVNode(type, props, children) {
         type,
         props,
         children,
+        _instance: null,
+        _dom: null,
     };
 }
 
@@ -21,14 +23,23 @@ function mount(vnode, parentDom) {
             // We create an instance of the component with the props passed in.
             const instance = new Component(vnode.props);
 
-            // Then we call the component's render() function which returns a VDOM tree.
-            // Just like we do with child nodes, this VDOM tree is passed recursively
-            // into the mount function.
-            domNode = mount(instance.render(), parentDom);
+            // We call the component's render() function to get its VDOM tree and
+            // store it on the instance.
+            instance._currentVNode = instance.render();
+
+            // We also store the parent DOM node on the instance.
+            instance._parentDom = parentDom;
+
+            // Pass the component's VDOM tree recursively to the mount() function,
+            // just like we do with child nodes.
+            domNode = mount(instance._currentVNode, parentDom);
         } else {
             // For everything else, we assume vnode.type is a tag name and create a HTMLElement.
             domNode = document.createElement(vnode.type);
         }
+
+        // Store the DOM node on the VDOM node for future updates.
+        vnode._dom = domNode;
 
         if (vnode.props) {
             // All of the props are set as attributes on the HTMLElement.
@@ -50,14 +61,32 @@ function mount(vnode, parentDom) {
     return domNode;
 }
 
+function update(prevVNode, nextVNode, parentDom) {
+    parentDom.replaceChild(mount(nextVNode, parentDom), prevVNode._dom);
+}
+
 class Component {
     constructor(props) {
         this.props = props || {};
         this.state = {};
+
+        this._parentDom = null;
+        this._currentVNode = null;
+        this._nextState = null;
     }
 
-    // We will implement this later
-    setState(newState) {}
+    _updateComponent() {
+        this.state = { ...this._nextState };
+        this._nextState = null;
+        const nextVNode = this.render();
+        update(this._currentVNode, nextVNode, this._parentDom);
+        this._currentVNode = nextVNode;
+    }
+
+    setState(newState) {
+        this._nextState = { ...this.state, ...newState };
+        this._updateComponent();
+    }
 
     // This will be implemented by the extending component
     render() {}
