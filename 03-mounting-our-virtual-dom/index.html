@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>vdom.js</title>
+</head>
+<body>
+    <div id="app"></div>
+    <code>Virtual DOM: <pre id="vdom"></pre></code>
+
+    <script src="vdom.js"></script>
+    <script src="app.js"></script>
+    <script>
+    // Retrieve the VDOM tree by calling app() and mount it to an existing DOM node.
+    mount(app(), document.getElementById("app"));
+
+    // Print the VDOM tree to the page so that we can easily inspect it.
+    document.getElementById("vdom").innerHTML = JSON.stringify(
+        app(),
+        null,
+        4
+    );
+    </script>
+</body>
+</html>

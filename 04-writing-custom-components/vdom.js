@@ -51,15 +51,14 @@ function mount(vnode, parentDom) {
 }
 
 class Component {
-    state = {};
-
     constructor(props) {
         this.props = props || {};
+        this.state = {};
     }
 
-    setState(newState) {
-        console.log("Setting state of", this.constructor.name, "to", newState);
-    }
+    // We will implement this later
+    setState(newState) {}
 
+    // This will be implemented by the extending component
     render() {}
 }
