@@ -16,17 +16,9 @@ function mount(vnode, parentDom) {
     } else {
         if (typeof vnode.type === "function") {
             // If the vnode type is a function, we can assume it is a component.
-            const Component = vnode.type;
-
-            // We create an instance of the component with the props passed in.
-            const instance = new Component(vnode.props);
-
-            // Then we call the component's render() function which returns a VDOM tree.
-            // Just like we do with child nodes, this VDOM tree is passed recursively
-            // into the mount function.
-            domNode = mount(instance.render(), parentDom);
+            domNode = getComponentVNode(vnode, parentDom);
         } else {
-            // For everything else, we assume vnode.type is a tag name and create a HTMLElement.
+            // For "regular" vnodes, we create a HTMLElement of the node's type.
             domNode = document.createElement(vnode.type);
         }
 
@@ -48,6 +40,19 @@ function mount(vnode, parentDom) {
     parentDom.appendChild(domNode);
 
     return domNode;
+}
+
+function getComponentVNode(vnode, parentDom) {
+    // The vnode's type property is the component class
+    const Component = vnode.type;
+
+    // Create an instance of the component with the props passed in, and call
+    // the component's render() function to get its VDOM tree.
+    const instance = new Component(vnode.props);
+    const newVNode = instance.render();
+
+    // Now that we have a "regular" vdom tree, we can pass it back to mount()
+    return mount(newVNode, parentDom);
 }
 
 class Component {

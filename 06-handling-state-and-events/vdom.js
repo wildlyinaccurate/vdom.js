@@ -3,7 +3,6 @@ function createVNode(type, props, children) {
         type,
         props,
         children,
-        _instance: null,
         _dom: null,
     };
 }
@@ -18,23 +17,9 @@ function mount(vnode, parentDom) {
     } else {
         if (typeof vnode.type === "function") {
             // If the vnode type is a function, we can assume it is a component.
-            const Component = vnode.type;
-
-            // We create an instance of the component with the props passed in.
-            const instance = new Component(vnode.props);
-
-            // We call the component's render() function to get its VDOM tree and
-            // store it on the instance.
-            instance._currentVNode = instance.render();
-
-            // We also store the parent DOM node on the instance.
-            instance._parentDom = parentDom;
-
-            // Pass the component's VDOM tree recursively to the mount() function,
-            // just like we do with child nodes.
-            domNode = mount(instance._currentVNode, parentDom);
+            domNode = createComponentNode(vnode, parentDom);
         } else {
-            // For everything else, we assume vnode.type is a tag name and create a HTMLElement.
+            // For "regular" vnodes, we create a HTMLElement of the node's type.
             domNode = document.createElement(vnode.type);
         }
 
@@ -61,8 +46,31 @@ function mount(vnode, parentDom) {
     return domNode;
 }
 
+// Create a component node for a component vnode
+function createComponentNode(vnode, parentDom) {
+    const Component = vnode.type;
+
+    // Create an instance of the component with the props passed in, and call
+    // the component's render() function to get its VDOM tree.
+    const instance = new Component(vnode.props);
+    const newVNode = instance.render();
+
+    // Store the component's parent DOM and VDOM tree on the instance for
+    // future updates.
+    instance._currentVNode = newVNode;
+    instance._parentDom = parentDom;
+
+    // Now that we have a "regular" vdom tree, we can pass it back to mount()
+    return mount(newVNode, parentDom);
+}
+
 function update(prevVNode, nextVNode, parentDom) {
-    parentDom.replaceChild(mount(nextVNode, parentDom), prevVNode._dom);
+    // Create a new document fragment and mount the new VDOM tree into it.
+    const fragment = document.createDocumentFragment();
+    const newDom = mount(nextVNode, fragment);
+
+    // Now we can replace the old DOM node with the new DOM node.
+    parentDom.replaceChild(fragment, prevVNode._dom);
 }
 
 class Component {
@@ -70,21 +78,37 @@ class Component {
         this.props = props || {};
         this.state = {};
 
+        // Keep track of the parent DOM node and the current VDOM tree so that
+        // we can call the update() function with them.
         this._parentDom = null;
         this._currentVNode = null;
+
+        // Keep track of any pending state changes.
         this._nextState = null;
     }
 
     _updateComponent() {
-        this.state = { ...this._nextState };
+        // Switch the instance to use the new state, and clear _nextState to indicate
+        // there are no more pending state changes.
+        this.state = this._nextState;
         this._nextState = null;
+
+        // Render the component with the new state.
         const nextVNode = this.render();
+
+        // Give the update function the old & new VDOM trees, and the parent DOM node.
         update(this._currentVNode, nextVNode, this._parentDom);
+
+        // Store the new VDOM tree on the instance for next time.
         this._currentVNode = nextVNode;
     }
 
     setState(newState) {
+        // Merge the new state with the old state. The spread operator ensures
+        // we copy the values rather than modifying the existing objects.
         this._nextState = { ...this.state, ...newState };
+
+        // Update the component.
         this._updateComponent();
     }
 
